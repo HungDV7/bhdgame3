@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <title>🎮 Đuổi hình bắt chữ</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      color: #f9fafb;
+      text-align: center;
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      color: #fcd34d;
+      text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.6);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .game-box {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(8px);
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+      width: 90%;
+      max-width: 700px;
+    }
+
+    .image-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 400px;
+      margin: 20px auto;
+      background: #111827;
+      border-radius: 12px;
+      border: 4px solid #fcd34d;
+      overflow: hidden;
+    }
+
+    .image-container img {
+      max-width: 100%;
+      max-height: 100%;
+      border-radius: 8px;
+    }
+
+    .timer {
+      font-size: 2em;
+      margin: 10px;
+      color: #fbbf24;
+    }
+
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button {
+      background: linear-gradient(135deg, #06b6d4, #3b82f6);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1em;
+      transition: transform 0.15s, background 0.3s;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+    }
+
+    #menu p {
+      margin: 10px 0;
+      font-size: 1.1em;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>🎮 Đuổi hình bắt chữ</h1>
+  <div id="menu" class="game-box">
+    <p>Chọn gói chơi (mỗi gói có số lượng hình khác nhau):</p>
+    <button onclick="startGame('A')">Gói A</button>
+    <button onclick="startGame('B')">Gói B</button>
+    <button onclick="startGame('C')">Gói C</button>
+    <button onclick="startGame('OT')">Gói OT</button>
+  </div>
+
+  <div id="game" class="game-box hidden">
+    <div class="image-container">
+      <img id="questionImage" src="" alt="Câu hỏi">
+    </div>
+    <div class="timer">⏳ <span id="countdown">15</span>s</div>
+    <div class="controls">
+      <button onclick="beginQuestion()">Bắt đầu</button>
+      <button onclick="pauseTimer()">Tạm dừng</button>
+      <button onclick="resumeTimer()">Tiếp tục</button>
+      <button onclick="skipImage()">Chuyển hình</button>
+    </div>
+  </div>
+
+  <!-- Âm thanh báo hết giờ -->
+  <audio id="timeupSound" src="sounds/timeup.mp3" preload="auto"></audio>
+
+  <script>
+    const packages = {
+      A: {
+        cover: "image/fd.jpg",
+        images: [
+          "image/a1.jpg", "image/a2.jpg", "image/a3.jpg", "image/a4.jpg", "image/a5.jpg",
+          "image/a6.jpg", "image/a7.jpg", "image/a8.jpg", "image/a9.jpg", "image/a10.jpg"
+        ]
+      },
+      B: {
+        cover: "image/fd.jpg",
+        images: [
+          "image/b1.jpg", "image/b2.jpg", "image/b3.jpg", "image/b4.jpg", "image/b5.jpg",
+          "image/b6.jpg", "image/b7.jpg", "image/b8.jpg", "image/b9.jpg", "image/b10.jpg"
+        ]
+      },
+      C: {
+        cover: "image/fd.jpg",
+        images: [
+          "image/c1.jpg", "image/c2.jpg", "image/c3.jpg", "image/c4.jpg", "image/c5.jpg",
+          "image/c6.jpg", "image/c7.jpg", "image/c8.jpg", "image/c9.jpg", "image/c10.jpg"
+        ]
+      },
+      OT: {
+        cover: "image/fd.jpg",
+        images: [
+          "image/ot1.jpg", "image/ot2.jpg", "image/ot3.jpg", "image/ot4.jpg", "image/ot5.jpg"
+        ]
+      }
+    };
+
+    let currentPackage = null;
+    let currentIndex = 0;
+    let timer;
+    let timeLeft = 15;
+    let running = false;
+
+    const timeupSound = document.getElementById("timeupSound");
+
+    function startGame(pkg) {
+      currentPackage = packages[pkg];
+      currentIndex = -1; // bắt đầu từ cover
+      document.getElementById("menu").classList.add("hidden");
+      document.getElementById("game").classList.remove("hidden");
+      resetState();
+      showCover();
+    }
+
+    function showCover() {
+      document.getElementById("questionImage").src = currentPackage.cover;
+      document.getElementById("countdown").textContent = 15;
+    }
+
+    function resetState() {
+      document.getElementById("questionImage").src = "";
+      document.getElementById("countdown").textContent = 15;
+      clearInterval(timer);
+      running = false;
+    }
+
+    function beginQuestion() {
+      currentIndex++;
+      if (currentIndex >= currentPackage.images.length) {
+        endGame();
+        return;
+      }
+      document.getElementById("questionImage").src = currentPackage.images[currentIndex];
+      timeLeft = 15;
+      document.getElementById("countdown").textContent = timeLeft;
+      clearInterval(timer);
+      timer = setInterval(() => {
+        if (timeLeft > 0) {
+          timeLeft--;
+          document.getElementById("countdown").textContent = timeLeft;
+        } else {
+          clearInterval(timer);
+          running = false;
+          timeupSound.play();
+        }
+      }, 1000);
+      running = true;
+    }
+
+    function pauseTimer() {
+      if (running) {
+        clearInterval(timer);
+        running = false;
+      }
+    }
+
+    function resumeTimer() {
+      if (!running && timeLeft > 0) {
+        timer = setInterval(() => {
+          if (timeLeft > 0) {
+            timeLeft--;
+            document.getElementById("countdown").textContent = timeLeft;
+          } else {
+            clearInterval(timer);
+            running = false;
+            timeupSound.play();
+          }
+        }, 1000);
+        running = true;
+      }
+    }
+
+    function skipImage() {
+      clearInterval(timer);
+      beginQuestion();
+    }
+
+    function endGame() {
+      document.getElementById("game").classList.add("hidden");
+      document.getElementById("menu").classList.remove("hidden");
+      alert("🎉 Hết gói hình! Hãy chọn gói khác để chơi tiếp.");
+    }
+  </script>
+</body>
+
+</html>
