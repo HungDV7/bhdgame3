@@ -235,6 +235,27 @@
       document.getElementById("menu").classList.remove("hidden");
       alert("🎉 Hết gói hình! Hãy chọn gói khác để chơi tiếp.");
     }
+
+    // Thêm sự kiện bàn phím
+    document.addEventListener('keydown', (e) => {
+      // Nếu bấm phím cách (Space)
+      if (e.code === 'Space') {
+        e.preventDefault(); // Ngăn không cho trang cuộn xuống
+        if (running) {
+          pauseTimer(); // Dừng thời gian nếu đang chạy
+        } else if (timeLeft > 0) {
+          resumeTimer(); // Tiếp tục thời gian nếu đang dừng
+        }
+      }
+      
+      // Thêm phím tắt khác (tùy chọn)
+      if (e.code === 'ArrowRight') {
+        skipImage(); // Mũi tên phải để chuyển hình
+      }
+      if (e.code === 'Enter') {
+        beginQuestion(); // Enter để bắt đầu câu hỏi
+      }
+    });
   </script>
 </body>
 
